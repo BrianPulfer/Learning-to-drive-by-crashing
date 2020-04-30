@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="name" default="thymio10"/>
+  <arg name="world" default="crashland"/>
+
+  <include file="$(find thymio_course_skeleton)/launch/thymio_gazebo_bringup.launch">
+    <arg name="name" value="/$(arg name)"/>
+    <arg name="world" value="$(arg world)"/>
+  </include>
+
+  <node pkg="ds_builder" name="ds_builder_node" type="main.py" output="screen">
+    <param name="name" value="/$(arg name)"/>
+  </node>
+</launch>
