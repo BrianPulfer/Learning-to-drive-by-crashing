@@ -75,7 +75,7 @@ class MightyThymioController:
 	def euclidean_distance(self, goal_position):
 		return np.sqrt((self.point.x - goal_position.x)**2 + (self.point.y - goal_position.y)**2)
 
-	def teleport(self, x, y, theta):
+	def teleport(self, x, y, theta, w=1):
 		"""Teleports the Robot at position (x, y, 0) with orientation (0, 0, theta) """
 		state_msg = ModelState()
 
@@ -88,7 +88,7 @@ class MightyThymioController:
 		state_msg.pose.orientation.x = 0
 		state_msg.pose.orientation.y = 0
 		state_msg.pose.orientation.z = float(theta)
-		state_msg.pose.orientation.w = 0
+		state_msg.pose.orientation.w = w
 
 		rospy.wait_for_service('/gazebo/set_model_state')
 
@@ -98,6 +98,9 @@ class MightyThymioController:
 		except rospy.ServiceException, e:
 			print(e)
 		return None
+
+	def set_camera_angle(self, angle):
+		pass
 
 	def get_camera_frame(self):
 		return self.camera_frame
