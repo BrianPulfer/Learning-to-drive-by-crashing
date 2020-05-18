@@ -10,5 +10,11 @@ This folder contains a program that allow to teleport the robot to any position 
 ### worlds/
 This folder contains the different environments the robot can be located in.
 
+### cnn/
+Contains the script and the dataset to create the Convolutional Neural Network model. The model is stored in an .h5 file as well.
+
+### driving_controller/
+Contains the script that uses the convolutional neural network to control the thymio. Also, contains the .launch file.
+
 # Authors
 Brian Pulfer, Rwiddhi Chakraborty, Shubhayu Das
