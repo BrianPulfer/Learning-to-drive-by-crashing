@@ -30,10 +30,18 @@ BIAS_CORRECTION = 0 #-0.00720734 #-0.25224984
 FORWARD_SPEED = 0.1
 MOVE_CYCLES = 20 * 2
 
+# Classes
+OBSTACLE_LEFT = 0
+OBSTACLE_MIDDLE = 1
+OBSTACLE_RIGHT = 2
+NO_OBSTACLE = 3
+WALL = 4
+
 
 def move_randomly(thymio):
 	import random
-	angle = 0.5-random.random()
+	#angle = 0.5-random.random()
+	angle = 0.1
 
 	for i in range(MOVE_CYCLES):
 		thymio.publish_speed(x=FORWARD_SPEED, y=0, z=angle)
@@ -70,8 +78,26 @@ def main():
 			prediction = model.predict(np.array([input_image]))[0]
 			print("Model Prediction: ", prediction)
 
-			for i in range(MOVE_CYCLES):
-				thymio.publish_speed(x=FORWARD_SPEED, y=0, z= -(prediction + BIAS_CORRECTION) * MAX_STEER_ANGLE_SPEED)
+			prediction = list(prediction).index(max(list(prediction)))
+
+			if prediction == OBSTACLE_LEFT:
+				print("Detected obstacle on the LEFT. Avoiding it...")
+				for i in range(MOVE_CYCLES):
+					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=-MAX_STEER_ANGLE_SPEED)
+			elif prediction == OBSTACLE_MIDDLE or prediction == WALL:
+				print("Detected obstacle in the MIDDLE. Avoiding it...")
+				for i in range(MOVE_CYCLES):
+					thymio.publish_speed(x=0, y=0, z=-MAX_STEER_ANGLE_SPEED)
+			elif prediction == OBSTACLE_RIGHT:
+				print("Detected obstacle on the RIGHT. Avoiding it...")
+				for i in range(MOVE_CYCLES):
+					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=MAX_STEER_ANGLE_SPEED)
+			else:
+				print("NOTHING detected. Keeping going straight.")
+				for i in range(MOVE_CYCLES):
+					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=0)
+
+
 			thymio.stop()
 
 

@@ -10,7 +10,7 @@ import random
 
 import numpy as np
 
-label_to_real_number = {'q': -1, 'w': -0.8, 'e': -0.6, 'r': -0.4, 't': -0.2, 'y': 0.2, 'u': 0.4, 'i':0.6, 'o':0.8, 'p':1}
+letter_to_label = {'l': 1, 'left': 1, 'm': 2, 'middle': 2, 'r': 3, 'right': 3, 'n': 4, 'nothing': 4, 'w': 5, 'wall': 5}
 
 def coordinates():
 	"""Returns the possible coordinates for x or y"""
@@ -37,10 +37,10 @@ def ask_user_to_label_thymio_view(thymio):
 	print("Please insert label for this picture")
 	label = raw_input()
 
-	while label not in label_to_real_number.keys():
+	while label not in letter_to_label.keys():
 		label = raw_input()
 
-	return label_to_real_number[label]
+	return letter_to_label[label]
 
 
 def move_thymio_randomly(thymio, min_x, max_x, min_y, max_y, theta = None):
@@ -77,7 +77,7 @@ def main():
 	bridge = CvBridge()
 
 	# Creating a counter to give different file names
-	counter = 1592
+	counter = 1
 
 	# Places to avoid while labeling data (because obstacles are there)
 	places_to_avoid = [
@@ -85,12 +85,17 @@ def main():
 	[-3, -3],
 	[-3, -2.5],
 	[-3, 2],
+	[-3, 2.5],
 	[-3, 3],
+	[-2.5, -3],
 	[-2.5, -2.5],
 	[-2.5, 2.5],
+	[-2, -2.5],
 	[-2, -2],
 	[-2, 2],
+	[-2, 2.5],
 	[-2, 3],
+	[-1.5, -2.5],
 	[1.5, -1.5],
 	[2, -1],
 	[2, 1],
@@ -107,15 +112,40 @@ def main():
 	[3.5, 2]
 	]
 
+	interesting_places = [
+	[-4, -3],
+	[-4, -2],
+	[-3.5, 3.5],
+	[-3, -4],
+	[-3, -3.5],
+	[-3, 1],
+	[-2, -4],
+	[-2, -3],
+	[-2, -1],
+	[-2, 1],
+	[-2, 1.5],
+	[1, -0.5],
+	[1, -1],
+	[1, -1.5],
+	[1, 1],
+	[1, 1.5],
+	[1, 2],
+	[1, 2.5],
+	[2,0],
+	[3, -1],
+	[3, 0],
+	[4, 1],
+	[4, 1.5],
+	[4, 2],
+	[4, 2.5],
+	]
+
 	# Gathering the data
 	while not rospy.is_shutdown():
-		# Put thymio in 19*19 positions each with 20 different angles (collect 19*19*20=8'000 images)
+		# Put thymio in 19*19 positions each with 20 different angles (collect circa 19*19*8=2'888 images)
 		for x in coordinates():
 			for y in coordinates():
 				for theta in angles():
-					# Delete this
-					if x <= 2 or y<=-2 or y>2:
-						continue
 
 					if [x, y] not in places_to_avoid:
 						print("Teleporting the Thymio to: ", x, y, theta)
@@ -125,6 +155,18 @@ def main():
 						store_in_dataset(thymio.get_camera_frame(), label, dataset_path, str(counter), bridge)
 
 						counter += 1
+
+		# Passing through interesting points once more
+		for x,y in interesting_places:
+			for theta in angles():
+				print("Teleporting the Thymio to: ", x, y, theta)
+
+				thymio.teleport(x, y, theta, w=0.5)
+				label = ask_user_to_label_thymio_view(thymio)
+				store_in_dataset(thymio.get_camera_frame(), label, dataset_path, str(counter), bridge)
+
+				counter += 1
+
 
 
 if __name__ == '__main__':
