@@ -20,21 +20,24 @@ from controller import MightyThymioController
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 
-LEFT = -1
-CENTER = 0
-RIGHT = 1
-
-# Initial angle of thymio from origin
-INITIAL_ANGLE = np.pi
-
 # Maximum steer angle of thymio
 MAX_STEER_ANGLE_SPEED = 0.25
 ROTATE_SPEED = 0.05
 ROTATE_CYCLES = 20
+BIAS_CORRECTION = 0 #-0.00720734 #-0.25224984
 
 # Speed of 0.1 and 20 Cycles make the thymio move of a 1/4 meter
 FORWARD_SPEED = 0.1
 MOVE_CYCLES = 20 * 2
+
+
+def move_randomly(thymio):
+	import random
+	angle = 0.5-random.random()
+
+	for i in range(MOVE_CYCLES):
+		thymio.publish_speed(x=FORWARD_SPEED, y=0, z=angle)
+	thymio.stop()
 
 
 def main():
@@ -45,7 +48,8 @@ def main():
 		thymio_name = thymio_name[1:]
 
 	thymio = MightyThymioController(thymio_name, initialize_node=False)
-	thymio.rotate_in_place(INITIAL_ANGLE)
+
+	move_randomly(thymio)
 
 	# Getting the model
 	model = tf.keras.models.load_model('/home/usi/catkin_ws/src/driving_controller/src/model.h5')
@@ -65,19 +69,9 @@ def main():
 
 			prediction = model.predict(np.array([input_image]))[0]
 			print("Model Prediction: ", prediction)
-			obstacle_position = list(prediction).index(max(list(prediction))) -1
 
-			if obstacle_position == LEFT:
-				for i in range(ROTATE_CYCLES):
-					thymio.publish_speed(x=ROTATE_SPEED, y=0, z=-MAX_STEER_ANGLE_SPEED)
-			elif obstacle_position == RIGHT:
-				for i in range(ROTATE_CYCLES):
-					thymio.publish_speed(x=ROTATE_SPEED, y=0, z=MAX_STEER_ANGLE_SPEED)
-			else:
-				random_angle = (0.5 -random())/2
-				for i in range(MOVE_CYCLES):
-					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=random_angle)
-
+			for i in range(MOVE_CYCLES):
+				thymio.publish_speed(x=FORWARD_SPEED, y=0, z= -(prediction + BIAS_CORRECTION) * MAX_STEER_ANGLE_SPEED)
 			thymio.stop()
 
 

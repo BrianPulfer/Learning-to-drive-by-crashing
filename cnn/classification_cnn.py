@@ -26,18 +26,21 @@ import matplotlib.pyplot as plt
 # Sci-Kit Learn import
 from sklearn.utils import shuffle
 
-DATASET_SIZE = 783
+START_IMAGE_NUMBER = 1
+DATASET_SIZE = 1663 #1388 #783
+#NUMBER_CLASSES = 5 #3
+PATIENCE = 30
 
 # Hyperparameters
 IMAGES_TARGET_SIZE = (150, 150)
 LEARNING_RATE = 0.001
 BATCH_SIZE = 32
-NR_EPOCHS = 60
+NR_EPOCHS = 300
 
 def get_data(percentage_train = 0.7):
 	# Collecting the images
 	images = []
-	for i in range(1, DATASET_SIZE+1):
+	for i in range(START_IMAGE_NUMBER, START_IMAGE_NUMBER + DATASET_SIZE):
 		img = load_img(os.getcwd()+'/dataset/'+str(i)+".jpeg", target_size=IMAGES_TARGET_SIZE)
 		images.append(img_to_array(img))
 
@@ -45,7 +48,12 @@ def get_data(percentage_train = 0.7):
 	labels_file = open(os.getcwd()+'/dataset/labels.csv', 'r')
 	labels = []
 	for line in labels_file:
-		labels.append(int(line.split(', ')[1]))
+		label = line.split(',')[1]
+
+		if label[0] == ' ':
+			label.strip()
+
+		labels.append(float(label))
 
 	images, labels = shuffle(images, labels)
 
@@ -57,9 +65,8 @@ def get_data(percentage_train = 0.7):
 	# Normalizing pixels in range [0, 1]
 	x_train, x_test = x_train / 255, x_test / 255
 
-	# One-hot encoding labels
-	# Class -1 -> [1, 0, 0]    Class 0  -> [0, 1, 0]     Class 1  -> [0, 0, 1]
-	y_train, y_test = tf.one_hot(y_train+1, 3), tf.one_hot(y_test+1, 3)
+	# One-hot encoding labels (just in classification)
+	# y_train, y_test = tf.one_hot(y_train, NUMBER_CLASSES), tf.one_hot(y_test, NUMBER_CLASSES)
 
 	return (x_train, y_train), (x_test, y_test)
 	
@@ -69,28 +76,16 @@ def create_model():
 
 	model.add(Conv2D(filters=8, kernel_size=(5, 5), strides=(1, 1), activation='relu'))
 	model.add(MaxPool2D(pool_size=(2, 2)))
+	model.add(Conv2D(filters=16, kernel_size=(4, 4), strides=(2, 2), activation='relu')) # Added
+	model.add(MaxPool2D(pool_size=(2, 2))) # Added
 	model.add(Conv2D(filters=16, kernel_size=(3, 3), strides=(2, 2), activation='relu'))
 	model.add(MaxPool2D(pool_size=(2, 2)))
 	model.add(Flatten())
 	model.add(Dropout(rate=0.3))
 	model.add(Dense(16, activation='tanh'))
 	model.add(Dropout(rate=0.3))
-	model.add(Dense(3, activation='softmax'))
+	model.add(Dense(1, activation='tanh'))
 	return model
-
-def get_accuracy(targets, predictions):
-	correct = 0
-
-	for i in range(len(targets)):
-		target, prediction = list(targets[i]), list(predictions[i])
-
-		target_class = target.index(max(target))-1
-		predicted_class = prediction.index(max(prediction))-1
-
-		if target_class == predicted_class:
-			correct = correct + 1
-
-	return float(correct) / float(len(targets))
 
 def store(model):
 	model.save('model.h5')
@@ -98,6 +93,10 @@ def store(model):
 def plot_train_history(history):
 	plt.plot(history['loss'])
 	plt.plot(history['val_loss'])
+	plt.title("Training History")
+	plt.xlabel("Epochs")
+	plt.ylabel("Loss")
+	plt.legend(['Train', 'Validation'], loc='upper right')
 	plt.show()
 
 def main():
@@ -109,17 +108,10 @@ def main():
 	model = create_model()
 
 	# Training and testing model
-	model.compile(optimizer=Adam(learning_rate = LEARNING_RATE), loss='categorical_crossentropy', metrics=['accuracy'])
+	model.compile(optimizer=Adam(learning_rate = LEARNING_RATE), loss='mean_squared_error', metrics=['accuracy'])
 	train_history = model.fit(
 		x_train, y_train, batch_size=BATCH_SIZE, epochs=NR_EPOCHS,
-		validation_data=(x_test, y_test), callbacks=[EarlyStopping(monitor='val_loss', patience=15)])
-
-	
-	# Testing on the test data
-	predictions = model.predict(x_test)
-
-	# Printing the accuracy
-	print("Accuracy: ", get_accuracy(y_test, predictions))
+		validation_data=(x_test, y_test), callbacks=[EarlyStopping(monitor='val_loss', patience=PATIENCE)])
 	
 	# Storing the model
 	store(model)
