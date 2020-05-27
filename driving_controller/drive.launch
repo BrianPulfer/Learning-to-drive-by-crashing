@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="name" default="thymio10"/>
-  <arg name="world" default="crashland"/>
+  <arg name="world" default="small"/>
 
   <include file="$(find thymio_course_skeleton)/launch/thymio_gazebo_bringup.launch">
     <arg name="name" value="/$(arg name)"/>

@@ -21,31 +21,45 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 
 # Maximum steer angle of thymio
-MAX_STEER_ANGLE_SPEED = 0.25
+MAX_STEER_ANGLE_SPEED = 2
 ROTATE_SPEED = 0.05
-ROTATE_CYCLES = 20
-BIAS_CORRECTION = 0 #-0.00720734 #-0.25224984
+ROTATE_CYCLES = 10
+BIAS_CORRECTION = 0 #-0.24628784 (small) #-0.00720734 (regression 2) #-0.25224984 (regression 1)
 
-# Speed of 0.1 and 20 Cycles make the thymio move of a 1/4 meter
+# Speed of 0.1 and 80 Cycles make the thymio move of a 1 meter
 FORWARD_SPEED = 0.1
-MOVE_CYCLES = 20 * 2
+MOVE_CYCLES = 10
 
-# Classes
-OBSTACLE_LEFT = 0
-OBSTACLE_MIDDLE = 1
-OBSTACLE_RIGHT = 2
-NO_OBSTACLE = 3
-WALL = 4
+PROCESSED_IMG_SIZE = (640/4, 400/4)
+
+IMAGES_BRIDGE = CvBridge()
 
 
 def move_randomly(thymio):
 	import random
-	#angle = 0.5-random.random()
-	angle = 0.1
+	angle = 0.5-random.random()
 
 	for i in range(MOVE_CYCLES):
 		thymio.publish_speed(x=FORWARD_SPEED, y=0, z=angle)
 	thymio.stop()
+
+def to_input_image(camera_frame):
+	"""
+	cv2_img = IMAGES_BRIDGE.imgmsg_to_cv2(camera_frame, "rgb8")
+	processed_cv2_img = cv2.resize(cv2_img, PROCESSED_IMG_SIZE) / 255
+	input_image = tf.convert_to_tensor(img_to_array(processed_cv2_img))
+
+	return input_image
+	"""
+	cv2_img = IMAGES_BRIDGE.imgmsg_to_cv2(camera_frame, "bgr8")
+	cv2_img = cv2.resize(cv2_img, PROCESSED_IMG_SIZE)
+	img = cv2_img[...,::-1].astype(np.float32) # Converts from GBR to RGB
+
+	tensor = tf.convert_to_tensor(img_to_array(img))
+	tensor = tensor / 255
+
+	return tensor
+
 
 
 def main():
@@ -62,42 +76,21 @@ def main():
 	# Getting the model
 	model = tf.keras.models.load_model('/home/usi/catkin_ws/src/driving_controller/src/model.h5')
 
-	# Creating a bridge for images
-	images_bridge = CvBridge()
-
 	# Driving around
 	while True:
 		thymio_camera_frame = thymio.get_camera_frame()
 
 		if thymio_camera_frame is not None:
-			cv2_img = images_bridge.imgmsg_to_cv2(thymio_camera_frame, "bgr8")
-			processed_cv2_img = cv2.resize(cv2_img, (150, 150)) / 255
-
-			input_image = tf.convert_to_tensor(img_to_array(processed_cv2_img))
+			input_image = to_input_image(thymio_camera_frame)
 
 			prediction = model.predict(np.array([input_image]))[0]
 			print("Model Prediction: ", prediction)
 
-			prediction = list(prediction).index(max(list(prediction)))
+			random_deviation = (0.5 - random()) / 8 # [-0.0625, 0.0625]
+			#random_deviation = 0
 
-			if prediction == OBSTACLE_LEFT:
-				print("Detected obstacle on the LEFT. Avoiding it...")
-				for i in range(MOVE_CYCLES):
-					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=-MAX_STEER_ANGLE_SPEED)
-			elif prediction == OBSTACLE_MIDDLE or prediction == WALL:
-				print("Detected obstacle in the MIDDLE. Avoiding it...")
-				for i in range(MOVE_CYCLES):
-					thymio.publish_speed(x=0, y=0, z=-MAX_STEER_ANGLE_SPEED)
-			elif prediction == OBSTACLE_RIGHT:
-				print("Detected obstacle on the RIGHT. Avoiding it...")
-				for i in range(MOVE_CYCLES):
-					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=MAX_STEER_ANGLE_SPEED)
-			else:
-				print("NOTHING detected. Keeping going straight.")
-				for i in range(MOVE_CYCLES):
-					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=0)
-
-
+			for i in range(MOVE_CYCLES):
+				thymio.publish_speed(x=FORWARD_SPEED, y=0, z= -(prediction + BIAS_CORRECTION + random_deviation) * MAX_STEER_ANGLE_SPEED)
 			thymio.stop()
 
 
