@@ -34,6 +34,8 @@ PROCESSED_IMG_SIZE = (640/4, 400/4)
 
 IMAGES_BRIDGE = CvBridge()
 
+WALL_IN_FRONT_THRESHOLD = 0.8
+
 
 def move_randomly(thymio):
 	import random
@@ -86,11 +88,17 @@ def main():
 			prediction = model.predict(np.array([input_image]))[0]
 			print("Model Prediction: ", prediction)
 
-			random_deviation = (0.5 - random()) / 8 # [-0.0625, 0.0625]
-			#random_deviation = 0
+			#random_deviation = (0.5 - random()) / 8 # [-0.0625, 0.0625]
+			random_deviation = 0
 
-			for i in range(MOVE_CYCLES):
-				thymio.publish_speed(x=FORWARD_SPEED, y=0, z= -(prediction + BIAS_CORRECTION + random_deviation) * MAX_STEER_ANGLE_SPEED)
+			steer_angle, wall_is_in_front = prediction[0], prediction[1]
+
+			if wall_is_in_front < WALL_IN_FRONT_THRESHOLD:
+				for i in range(MOVE_CYCLES):
+					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=MAX_STEER_ANGLE_SPEED)
+			else:
+				for i in range(MOVE_CYCLES):
+					thymio.publish_speed(x=FORWARD_SPEED, y=0, z=steer_angle)
 			thymio.stop()
 
 

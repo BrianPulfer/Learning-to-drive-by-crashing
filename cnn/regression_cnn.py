@@ -30,8 +30,8 @@ from sklearn.utils import shuffle
 import cv2
 
 
-START_IMAGE_NUMBER = 3
-DATASET_SIZE = 10448 - 2448 #839 #1663 #1388 #783
+START_IMAGE_NUMBER = 11
+DATASET_SIZE = 8055 #10448 - 2448 #839 #1663 #1388 #783
 #NUMBER_CLASSES = 5 #3
 PATIENCE = 30
 
@@ -39,7 +39,7 @@ PATIENCE = 30
 IMAGES_TARGET_SIZE = (640/4, 400/4) #(160 ,100)
 LEARNING_RATE = 0.001
 BATCH_SIZE = 32
-NR_EPOCHS = 300
+NR_EPOCHS = 50 # 300 Is better
 
 def get_data(percentage_train = 0.7):
 	# Collecting the images
@@ -55,21 +55,20 @@ def get_data(percentage_train = 0.7):
 	labels_file = open(os.getcwd()+'/dataset/labels.csv', 'r')
 	labels = []
 	for line in labels_file:
-		label = line.split(',')[1]
+		label_1, label_2 = line.split(',')[1], line.split(',')[2]
 
-		if label[0] == ' ':
-			label.strip()
+		label_1.strip()
+		label_2.strip()
 
-		labels.append(float(label))
+		labels.append([float(label_1), float(label_2)])
 
 	# Cutting the labels to the used ones
-	labels = labels[:DATASET_SIZE]
+	labels = np.array(labels[:DATASET_SIZE])
 
 	# Normalizing the labels in the range [-1, 1]
-	max_label = max(max(labels), abs(min(labels)))
-	labels = np.array(labels) / max_label
-
-	
+	max_label_1, max_label_2 = max(max(labels[:,0]), abs(min(labels[:,0]))), max(max(labels[:,1]), abs(min(labels[:,1])))
+	labels[:,0] /= max_label_1
+	labels[:,1] /= max_label_2
 
 	images, labels = shuffle(images, labels)
 
@@ -100,7 +99,7 @@ def create_model():
 	model.add(Dropout(rate=0.3))
 	model.add(Dense(16, activation='tanh'))
 	model.add(Dropout(rate=0.3))
-	model.add(Dense(1, activation='tanh'))
+	model.add(Dense(2, activation='tanh'))
 	return model
 
 def store(model):

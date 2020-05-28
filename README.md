@@ -7,6 +7,9 @@ The goal of the project is to teach a robot (the Mighty Thymio, a personalized v
 ### ds_builder/
 This folder contains a program that allow to teleport the robot to any position (x, y) on the plane with any orientation (rotation on z-axis) and store and label what is beign currently seen by the robot (camera frame).
 
+### ds_builder_automatic/
+This folder contains a program that automatically collects a dataset. The dataset is collected by having the thymio moving in the world avoiding obstacles and collecting labels based on the readings of the infrared sensors.
+
 ### worlds/
 This folder contains the different environments the robot can be located in.
 

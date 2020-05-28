@@ -50,7 +50,8 @@ def store_image(thymio, image_path, label_path, image_count, bridge):
 	S = thymio.sensors[:5][:,1] / thymio.sensors[:5][:,2]
 
 	# Deriving label and retrieving image
-	label = np.dot([-2, -1, 0, 1, 2], S)
+	label_1 = np.dot([-2, -1, 0, 1, 2], S)
+	label_2 = np.dot([1, 1, 1, 1, 1], S)
 	image = thymio.get_camera_frame()
 
 	if not image:
@@ -62,19 +63,19 @@ def store_image(thymio, image_path, label_path, image_count, bridge):
 
 	# Storing the label
 	labels_file = open(label_path, 'a')
-	labels_file.write(str(image_count)+', '+str(label)+'\n')
+	labels_file.write(str(image_count)+', '+str(label_1)+', '+str(label_2)+'\n')
 	labels_file.close()
 
-	return label
+	return (label_1, label_2)
 
 def store_one_more_image():
 	global THYMIO
 	global IMAGE_COUNTER
 
 	IMAGE_COUNTER += 1
-	label = store_image(THYMIO, image_path=DATASET_PATH+str(IMAGE_COUNTER)+'.jpeg', label_path=LABELS_FILE_PATH, image_count=IMAGE_COUNTER, bridge=BRIDGE)
+	labels = store_image(THYMIO, image_path=DATASET_PATH+str(IMAGE_COUNTER)+'.jpeg', label_path=LABELS_FILE_PATH, image_count=IMAGE_COUNTER, bridge=BRIDGE)
 
-	return label
+	return labels
 
 def rotate_by_pi(myt):
 	# Sensors
@@ -148,10 +149,10 @@ def main():
 		forward_until_approach_close(THYMIO, THYMIO_SPEED)
 
 		# Storing the image with the label
-		label = store_one_more_image()
+		labels = store_one_more_image()
 
 		# If the image was stored successfully
-		if label: 
+		if labels: 
 			# Steer the thymio
 			rotate_by_pi(THYMIO)
 			"""
