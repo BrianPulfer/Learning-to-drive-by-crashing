@@ -92,14 +92,14 @@ def create_model():
 	model.add(Conv2D(filters=8, kernel_size=(5, 5), strides=(1, 1), activation='relu'))
 	model.add(MaxPool2D(pool_size=(2, 2)))
 	model.add(Conv2D(filters=16, kernel_size=(4, 4), strides=(2, 2), activation='relu')) # Added
-	model.add(MaxPool2D(pool_size=(2, 2))) # Added
+	model.add(MaxPool2D(pool_size=(2, 2))) 												 # Added
 	model.add(Conv2D(filters=16, kernel_size=(3, 3), strides=(2, 2), activation='relu'))
 	model.add(MaxPool2D(pool_size=(2, 2)))
 	model.add(Flatten())
 	model.add(Dropout(rate=0.3))
 	model.add(Dense(16, activation='tanh'))
 	model.add(Dropout(rate=0.3))
-	model.add(Dense(2, activation='tanh'))
+	model.add(Dense(2, activation='tanh'))												 # 2 Outputs now
 	return model
 
 def store(model):
